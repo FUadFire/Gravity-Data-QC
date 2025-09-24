@@ -14,3 +14,106 @@ from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 import io
 warnings.filterwarnings('ignore')
+
+# Download Dataset
+url = "https://docs.google.com/spreadsheets/d/1aX6X2IUFbLmLq5q8ghQLBLlbbWEiS9KO/edit?usp=drive_link&ouid=109864100569859608350&rtpof=true&sd=true"
+output = "Database Gravity.xlsx"
+gdown.download(url,output, quiet=False, fuzzy=True)
+
+#Memanggil Dataset
+df = pd.read_excel('Database Gravity.xlsx', sheet_name=['270824','280824','290824','300824','310824'])
+sheet1_df = df['270824']
+sheet2_df = df['280824']
+sheet3_df = df['290824']
+sheet4_df = df['300824']
+sheet5_df = df['310824']
+
+#Menggabungkan Data
+GravityRAW_df = pd.concat([sheet1_df,sheet2_df,sheet3_df,sheet4_df,sheet5_df])
+GravityRAW_df.head()
+
+GravityRAW_df.info()
+
+GravityRAW_df['GMT+7']=pd.to_datetime(GravityRAW_df['GMT+7'], format='%H:%M:%S', errors='coerce')
+GravityRAW_df.info()
+GravityRAW_df.head()
+
+GravityRAW_df['ID'] = GravityRAW_df['ID'].astype(str)
+
+#Group by ID dan ploting grafik
+def plot_by_id_subplots(df):
+  Id_Uniq = df['ID'].unique()
+  for id in Id_Uniq:
+    df_id = df[df['ID'] == id]
+
+    if not df_id.empty:
+      fig = plt.figure(figsize=(15, 15))
+      fig.suptitle(f'Graphic: {id}')
+
+      #subplot 1 : Grafik scatter yang terdiri dari Dec Time VS Standard deviasi
+      ax1 = plt.subplot (212)
+      ax1.scatter(df_id['DEC.TIME'], df_id['SD.'], color = "blue")
+      ax1.set_title('Time VS Standard Deviation')
+      ax1.set_xlabel('Time (GMT)')
+      ax1.set_ylabel('Standard Deviasi')
+      ax1.grid(True)
+      ax1.legend()
+      ax1.tick_params(axis='x', rotation=0)
+      ax1.set_ylim(-0.1, 0.4)
+
+      #subplot 2 : Grafik scatter yang terdiri dari TILT X VS TILT Y
+      ax2 = plt.subplot (221)
+      an = np.linspace(0, 2*np.pi, 100)
+      ax2.plot(5 * np.cos(an), 5 * np.sin(an), color = "red")
+      ax2.plot(10 * np.cos(an), 10 * np.sin(an), color = "orange")
+      ax2.scatter(df_id['TILTX'], df_id['TILTY'], color = "red")
+      ax2.set_title('Tilt X VS Tilt Y')
+      ax2.set_xlabel('Tilt X')
+      ax2.set_ylabel('Tilt Y')
+      ax2.grid(True)
+      ax2.legend()
+      ax2.tick_params(axis='x', rotation=0)
+      ax2.set_ylim(-15, 15)
+      ax2.set_xlim(-15, 15)
+
+      # Subplot 3: Grafik scatter yang terdiri dari DEC.TIME vs GRAV
+      ax3 = plt.subplot (222)
+      ax3.scatter(df_id['DEC.TIME'], df_id['GRAV'], color = "blue")
+      ax3.set_title('Time VS Gravity')
+      ax3.set_xlabel('Time (GMT)')
+      ax3.set_ylabel('Gravity Corrected By Tide Correction')
+      ax3.grid(True)
+      ax3.legend()
+      ax3.tick_params(axis='x', rotation=0)
+      ax3.set_ylim(5800, 5950)
+
+      plt.tight_layout()
+      plt.show()
+    else:
+
+      print(f"No data found for ID: {id}")
+
+plot_by_id_subplots(GravityRAW_df)
+
+import pandas as pd
+def qc_gravity_data(df):
+    # Filter data based on SD. < 0.05 mGal
+    df_filtered = df[df['SD.'] <= 0.04]
+
+    # Filter data based on tiltx and tilty between -10 and 10 arcseconds
+    df_filtered = df_filtered[
+        (df_filtered['TILTX'] >= -10) & (df_filtered['TILTX'] <= 5) &
+        (df_filtered['TILTY'] >= -10) & (df_filtered['TILTY'] <= 5)
+    ]
+    return df_filtered
+
+# Example usage (assuming GravityRAW_df is your DataFrame)
+GravityQC_df = qc_gravity_data(GravityRAW_df)
+
+# Now GravityQC_df contains the data that passed your QC criteria.
+# You can proceed with further calculations or visualizations using this filtered data.
+
+# Example: Plotting the filtered data
+plot_by_id_subplots(GravityQC_df)
+
+GravityQC_df
