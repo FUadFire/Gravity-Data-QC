@@ -1,0 +1,16 @@
+!pip install python-pptx
+
+import pandas as pd
+import gdown
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+import json
+from datetime import datetime, date, timedelta
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
+import io
+warnings.filterwarnings('ignore')
